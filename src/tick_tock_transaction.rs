@@ -11,17 +11,21 @@
 * limitations under the License.
 */
 
-use crate::{blockchain_config::BlockchainConfig, ExecuteParams, TransactionExecutor, error::ExecutorError, ActionPhaseResult};
+use crate::{
+    blockchain_config::BlockchainConfig, error::ExecutorError, ActionPhaseResult, ExecuteParams,
+    TransactionExecutor,
+};
 
 use std::sync::atomic::Ordering;
-use ton_block::{
-    Account, CurrencyCollection, Grams, Message, TrComputePhase, Transaction, 
-    TransactionDescr, TransactionDescrTickTock, TransactionTickTock, Serializable
+use tvm_block::{
+    Account, CurrencyCollection, Grams, Message, Serializable, TrComputePhase, Transaction,
+    TransactionDescr, TransactionDescrTickTock, TransactionTickTock,
 };
-use ton_types::{error, fail, Result, HashmapType, SliceData};
-use ton_vm::{
+use tvm_types::{error, fail, HashmapType, Result, SliceData};
+use tvm_vm::{
     boolean, int,
-    stack::{integer::IntegerData, Stack, StackItem}, SmartContractInfo,
+    stack::{integer::IntegerData, Stack, StackItem},
+    SmartContractInfo,
 };
 
 pub struct TickTockTransactionExecutor {
@@ -31,10 +35,7 @@ pub struct TickTockTransactionExecutor {
 
 impl TickTockTransactionExecutor {
     pub fn new(config: BlockchainConfig, tt: TransactionTickTock) -> Self {
-        Self {
-            config,
-            tt,
-        }
+        Self { config, tt }
     }
 }
 
@@ -52,13 +53,18 @@ impl TransactionExecutor for TickTockTransactionExecutor {
         }
         let account_id = match account.get_id() {
             Some(addr) => addr,
-            None => fail!("Tick Tock contract should have Standard address")
+            None => fail!("Tick Tock contract should have Standard address"),
         };
         match account.get_tick_tock() {
-            Some(tt) => if tt.tock != self.tt.is_tock() && tt.tick != self.tt.is_tick() {
-                fail!("wrong type of account's tick tock flag")
+            Some(tt) => {
+                if tt.tock != self.tt.is_tock() && tt.tick != self.tt.is_tick() {
+                    fail!("wrong type of account's tick tock flag")
+                }
             }
-            None => fail!("Account {:x} is not special account for tick tock", account_id)
+            None => fail!(
+                "Account {:x} is not special account for tick tock",
+                account_id
+            ),
         }
         let account_address = account.get_addr().cloned().unwrap_or_default();
         log::debug!(target: "executor", "tick tock transation account {:x}", account_id);
@@ -67,8 +73,8 @@ impl TransactionExecutor for TickTockTransactionExecutor {
         let is_masterchain = true;
         let is_special = true;
         let lt = std::cmp::max(
-            account.last_tr_time().unwrap_or_default(), 
-            params.last_tr_lt.load(Ordering::Relaxed)
+            account.last_tr_time().unwrap_or_default(),
+            params.last_tr_lt.load(Ordering::Relaxed),
         );
         let mut tr = Transaction::with_address_and_status(account_id.clone(), account.status());
         tr.set_logical_time(lt);
@@ -89,15 +95,12 @@ impl TransactionExecutor for TickTockTransactionExecutor {
                 }
                 storage_fee -= due_before_storage;
                 (storage_ph, storage_fee)
-            },
-            Err(e) => fail!(
-                ExecutorError::TrExecutorError(
-                    format!(
-                        "cannot create storage phase of a new transaction for \
-                         smart contract for reason {}", e
-                    )
-                )
-            )
+            }
+            Err(e) => fail!(ExecutorError::TrExecutorError(format!(
+                "cannot create storage phase of a new transaction for \
+                         smart contract for reason {}",
+                e
+            ))),
         };
         let mut description = TransactionDescrTickTock {
             tt: self.tt.clone(),
@@ -111,7 +114,10 @@ impl TransactionExecutor for TickTockTransactionExecutor {
         let config_params = self.config().raw_config().config_params.data().cloned();
         let mut smc_info = SmartContractInfo {
             capabilities: self.config().raw_config().capabilities(),
-            myself: SliceData::load_builder(account_address.write_to_new_cell().unwrap_or_default()).unwrap(),
+            myself: SliceData::load_builder(
+                account_address.write_to_new_cell().unwrap_or_default(),
+            )
+            .unwrap(),
             block_lt: params.block_lt,
             trans_lt: lt,
             unix_time: params.block_unixtime,
@@ -120,16 +126,23 @@ impl TransactionExecutor for TickTockTransactionExecutor {
             config_params,
             ..Default::default()
         };
-        smc_info.calc_rand_seed(params.seed_block.clone(), &account_address.address().get_bytestring(0));
+        smc_info.calc_rand_seed(
+            params.seed_block.clone(),
+            &account_address.address().get_bytestring(0),
+        );
         let mut stack = Stack::new();
         stack
-            .push(int!(account.balance().map_or(0, |value| value.grams.as_u128())))
-            .push(StackItem::integer(IntegerData::from_unsigned_bytes_be(account_id.get_bytestring(0))))
+            .push(int!(account
+                .balance()
+                .map_or(0, |value| value.grams.as_u128())))
+            .push(StackItem::integer(IntegerData::from_unsigned_bytes_be(
+                account_id.get_bytestring(0),
+            )))
             .push(boolean!(self.tt.is_tock()))
             .push(int!(-2));
         log::debug!(target: "executor", "compute_phase {}", lt);
         let (compute_ph, actions, new_data) = match self.compute_phase(
-            None, 
+            None,
             account,
             &mut acc_balance,
             &CurrencyCollection::default(),
@@ -145,7 +158,7 @@ impl TransactionExecutor for TickTockTransactionExecutor {
                 log::debug!(target: "executor", "compute_phase error: {}", e);
                 match e.downcast_ref::<ExecutorError>() {
                     Some(ExecutorError::NoAcceptError(_, _)) => return Err(e),
-                    _ => fail!(ExecutorError::TrExecutorError(e.to_string()))
+                    _ => fail!(ExecutorError::TrExecutorError(e.to_string())),
                 }
             }
         };
@@ -158,30 +171,29 @@ impl TransactionExecutor for TickTockTransactionExecutor {
                     log::debug!(target: "executor", "compute_phase: TrComputePhase::Vm success");
                     log::debug!(target: "executor", "action_phase {}", lt);
                     match self.action_phase_with_copyleft(
-                        &mut tr, 
-                        account, 
-                        &original_acc_balance, 
-                        &mut acc_balance, 
-                        &mut CurrencyCollection::default(), 
-                        &Grams::zero(), 
-                        actions.unwrap_or_default(), 
+                        &mut tr,
+                        account,
+                        &original_acc_balance,
+                        &mut acc_balance,
+                        &mut CurrencyCollection::default(),
+                        &Grams::zero(),
+                        actions.unwrap_or_default(),
                         new_data,
                         &account_address,
-                        is_special
+                        is_special,
                     ) {
-                        Ok(ActionPhaseResult{phase, messages, .. }) => {
+                        Ok(ActionPhaseResult {
+                            phase, messages, ..
+                        }) => {
                             out_msgs = messages;
                             // ignore copyleft reward because account is special
                             Some(phase)
                         }
-                        Err(e) => fail!(
-                            ExecutorError::TrExecutorError(
-                                format!(
-                                    "cannot create action phase of a new transaction \
-                                     for smart contract for reason {}", e
-                                )
-                            )
-                        )
+                        Err(e) => fail!(ExecutorError::TrExecutorError(format!(
+                            "cannot create action phase of a new transaction \
+                                     for smart contract for reason {}",
+                            e
+                        ))),
                     }
                 } else {
                     log::debug!(target: "executor", "compute_phase: TrComputePhase::Vm failed");
@@ -206,7 +218,7 @@ impl TransactionExecutor for TickTockTransactionExecutor {
                 true
             }
         };
-        
+
         log::debug!(target: "executor", "Desciption.aborted {}", description.aborted);
         tr.set_end_status(account.status());
         account.set_balance(acc_balance);
@@ -219,18 +231,23 @@ impl TransactionExecutor for TickTockTransactionExecutor {
         tr.write_description(&TransactionDescr::TickTock(description))?;
         Ok(tr)
     }
-    fn ordinary_transaction(&self) -> bool { false }
-    fn config(&self) -> &BlockchainConfig { &self.config }
+    fn ordinary_transaction(&self) -> bool {
+        false
+    }
+    fn config(&self) -> &BlockchainConfig {
+        &self.config
+    }
     fn build_stack(&self, _in_msg: Option<&Message>, account: &Account) -> Stack {
         let account_balance = account.balance().unwrap().grams.as_u128();
         let account_id = account.get_id().unwrap();
         let mut stack = Stack::new();
         stack
             .push(int!(account_balance))
-            .push(StackItem::integer(IntegerData::from_unsigned_bytes_be(account_id.get_bytestring(0))))
+            .push(StackItem::integer(IntegerData::from_unsigned_bytes_be(
+                account_id.get_bytestring(0),
+            )))
             .push(boolean!(self.tt.is_tock()))
             .push(int!(-2));
         stack
     }
 }
-

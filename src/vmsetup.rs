@@ -11,13 +11,14 @@
 * limitations under the License.
 */
 
-use ton_block::GlobalCapabilities;
-use ton_types::{Cell, HashmapE, SliceData, Result};
-use ton_vm::{
-    executor::{Engine, gas::gas_state::Gas}, smart_contract_info::SmartContractInfo,
-    stack::{Stack, StackItem, savelist::SaveList}
-};
 use crate::BlockchainConfig;
+use tvm_block::GlobalCapabilities;
+use tvm_types::{Cell, HashmapE, Result, SliceData};
+use tvm_vm::{
+    executor::{gas::gas_state::Gas, Engine},
+    smart_contract_info::SmartContractInfo,
+    stack::{savelist::SaveList, Stack, StackItem},
+};
 
 pub struct VMSetupContext {
     pub capabilities: u64,
@@ -35,11 +36,10 @@ pub struct VMSetup {
     stack: Option<Stack>,
     gas: Option<Gas>,
     libraries: Vec<HashmapE>,
-    ctx: VMSetupContext, 
+    ctx: VMSetupContext,
 }
 
 impl VMSetup {
-
     /// Creates new instance of VMSetup with contract code.
     /// Initializes some registers of TVM with predefined values.
     pub fn with_context(code: SliceData, ctx: VMSetupContext) -> Self {
@@ -66,7 +66,7 @@ impl VMSetup {
     pub fn set_contract_info_with_config(
         self,
         mut sci: SmartContractInfo,
-        config: &BlockchainConfig
+        config: &BlockchainConfig,
     ) -> Result<VMSetup> {
         sci.capabilities |= config.raw_config().capabilities();
         self.set_smart_contract_info(sci)
@@ -75,9 +75,9 @@ impl VMSetup {
     /// Sets SmartContractInfo for TVM register c7
     #[deprecated]
     pub fn set_contract_info(
-        self, 
-        mut sci: SmartContractInfo, 
-        with_init_code_hash: bool
+        self,
+        mut sci: SmartContractInfo,
+        with_init_code_hash: bool,
     ) -> Result<VMSetup> {
         if with_init_code_hash {
             sci.capabilities |= GlobalCapabilities::CapInitCodeHash as u64;
@@ -96,7 +96,7 @@ impl VMSetup {
         self.stack = Some(stack);
         self
     }
-    
+
     /// Sets gas for TVM
     pub fn set_gas(mut self, gas: Gas) -> VMSetup {
         self.gas = Some(gas);
@@ -123,12 +123,7 @@ impl VMSetup {
     pub fn create(self) -> Engine {
         if cfg!(debug_assertions) {
             // account balance is duplicated in stack and in c7 - so check
-            let balance_in_smc = self
-                .ctrls
-                .get(7)
-                .unwrap()
-                .as_tuple()
-                .unwrap()[0]
+            let balance_in_smc = self.ctrls.get(7).unwrap().as_tuple().unwrap()[0]
                 .as_tuple()
                 .unwrap()[7]
                 .as_tuple()
@@ -150,7 +145,7 @@ impl VMSetup {
             Some(self.ctrls),
             self.stack,
             self.gas,
-            self.libraries
+            self.libraries,
         );
         vm.set_block_version(self.ctx.block_version);
         #[cfg(feature = "signature_with_id")]

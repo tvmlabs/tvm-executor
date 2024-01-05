@@ -11,12 +11,12 @@
 * limitations under the License.
 */
 
-use ton_types::types::ExceptionCode;
-use ton_block::ComputeSkipReason;
-use ton_vm::stack::StackItem;
+use tvm_block::ComputeSkipReason;
+use tvm_types::types::ExceptionCode;
+use tvm_vm::stack::StackItem;
 
 #[derive(Debug, failure::Fail, PartialEq)]
-pub enum ExecutorError {   
+pub enum ExecutorError {
     #[fail(display = "Invalid external message")]
     InvalidExtMessage,
     #[fail(display = "Transaction executor internal error: {}", 0)]
@@ -27,6 +27,9 @@ pub enum ExecutorError {
     NoAcceptError(i32, Option<StackItem>),
     #[fail(display = "Cannot pay for importing this external message")]
     NoFundsToImportMsg,
-    #[fail(display = "Compute phase skipped while processing exteranl inbound messagewith reason {:?}", 0)]
-    ExtMsgComputeSkipped(ComputeSkipReason)
+    #[fail(
+        display = "Compute phase skipped while processing exteranl inbound messagewith reason {:?}",
+        0
+    )]
+    ExtMsgComputeSkipped(ComputeSkipReason),
 }

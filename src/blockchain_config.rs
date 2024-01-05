@@ -11,11 +11,11 @@
 * limitations under the License.
 */
 
-use ton_block::{
-    ConfigParam18, ConfigParams, FundamentalSmcAddresses, GasLimitsPrices, GlobalCapabilities, Grams,
-    MsgAddressInt, MsgForwardPrices, StorageInfo, StoragePrices, StorageUsedShort,
+use tvm_block::{
+    ConfigParam18, ConfigParams, FundamentalSmcAddresses, GasLimitsPrices, GlobalCapabilities,
+    Grams, MsgAddressInt, MsgForwardPrices, StorageInfo, StoragePrices, StorageUsedShort,
 };
-use ton_types::{Cell, Result, UInt256};
+use tvm_types::{Cell, Result, UInt256};
 
 pub const VERSION_BLOCK_REVERT_MESSAGES_WITH_ANYCAST_ADDRESSES: u32 = 8;
 pub const VERSION_BLOCK_NEW_CALCULATION_BOUNCED_STORAGE: u32 = 30;
@@ -35,7 +35,7 @@ impl TONDefaultConfig for MsgForwardPrices {
             cell_price: 65536000000,
             ihr_price_factor: 98304,
             first_frac: 21845,
-            next_frac: 21845
+            next_frac: 21845,
         }
     }
 
@@ -46,7 +46,7 @@ impl TONDefaultConfig for MsgForwardPrices {
             cell_price: 6553600000,
             ihr_price_factor: 98304,
             first_frac: 21845,
-            next_frac: 21845
+            next_frac: 21845,
         }
     }
 }
@@ -76,7 +76,8 @@ impl CalcMsgFwdFees for MsgForwardPrices {
         // but calculations are performed in integers, so prices are multiplied to some big
         // number (0xffff) and fee calculation uses such values. At the end result is divided by
         // 0xffff with ceil rounding to obtain nanograms (add 0xffff and then `>> 16`)
-        self.lump_price as u128 + ((cells * self.cell_price as u128 + bits * self.bit_price as u128 + 0xffff) >> 16)
+        self.lump_price as u128
+            + ((cells * self.cell_price as u128 + bits * self.bit_price as u128 + 0xffff) >> 16)
     }
 
     /// Calculate message IHR fee
@@ -101,36 +102,45 @@ impl CalcMsgFwdFees for MsgForwardPrices {
 
 #[derive(Clone)]
 pub struct AccStoragePrices {
-    prices: Vec<StoragePrices>
+    prices: Vec<StoragePrices>,
 }
 
 impl Default for AccStoragePrices {
     fn default() -> Self {
         AccStoragePrices {
-            prices: vec![
-                StoragePrices {
-                    utime_since: 0,
-                    bit_price_ps: 1,
-                    cell_price_ps: 500,
-                    mc_bit_price_ps: 1000,
-                    mc_cell_price_ps: 500000,
-                }
-            ]
+            prices: vec![StoragePrices {
+                utime_since: 0,
+                bit_price_ps: 1,
+                cell_price_ps: 500,
+                mc_bit_price_ps: 1000,
+                mc_cell_price_ps: 500000,
+            }],
         }
     }
 }
 
 impl AccStoragePrices {
     /// Calculate storage fee for provided data
-    pub fn calc_storage_fee(&self, cells: u128, bits: u128, mut last_paid: u32, now: u32, is_masterchain: bool) -> u128 {
-        if now <= last_paid || last_paid == 0 || self.prices.is_empty() || now <= self.prices[0].utime_since {
-            return 0
+    pub fn calc_storage_fee(
+        &self,
+        cells: u128,
+        bits: u128,
+        mut last_paid: u32,
+        now: u32,
+        is_masterchain: bool,
+    ) -> u128 {
+        if now <= last_paid
+            || last_paid == 0
+            || self.prices.is_empty()
+            || now <= self.prices[0].utime_since
+        {
+            return 0;
         }
         let mut fee = 0u128;
         // storage prices config contains prices array for some time intervals
         // to calculate account storage fee we need to sum fees for all intervals since last
         // storage fee pay calculated by formula `(cells * cell_price + bits * bits_price) * interval`
-        for i in 0 .. self.prices.len() {
+        for i in 0..self.prices.len() {
             let prices = &self.prices[i];
             let end = if i < self.prices.len() - 1 {
                 self.prices[i + 1].utime_since
@@ -141,9 +151,12 @@ impl AccStoragePrices {
             if end >= last_paid {
                 let delta = end - std::cmp::max(prices.utime_since, last_paid);
                 fee += if is_masterchain {
-                    (cells * prices.mc_cell_price_ps as u128 + bits * prices.mc_bit_price_ps as u128) * delta as u128
+                    (cells * prices.mc_cell_price_ps as u128
+                        + bits * prices.mc_bit_price_ps as u128)
+                        * delta as u128
                 } else {
-                    (cells * prices.cell_price_ps as u128 + bits * prices.bit_price_ps as u128) * delta as u128
+                    (cells * prices.cell_price_ps as u128 + bits * prices.bit_price_ps as u128)
+                        * delta as u128
                 };
                 last_paid = end;
             }
@@ -175,8 +188,8 @@ impl TONDefaultConfig for GasLimitsPrices {
             gas_credit: 10000,
             block_gas_limit: 10000000,
             freeze_due_limit: 100000000,
-            delete_due_limit:1000000000,
-            max_gas_threshold:10000000000,
+            delete_due_limit: 1000000000,
+            max_gas_threshold: 10000000000,
         }
     }
 
@@ -190,8 +203,8 @@ impl TONDefaultConfig for GasLimitsPrices {
             gas_credit: 10000,
             block_gas_limit: 10000000,
             freeze_due_limit: 100000000,
-            delete_due_limit:1000000000,
-            max_gas_threshold:1000000000,
+            delete_due_limit: 1000000000,
+            max_gas_threshold: 1000000000,
         }
     }
 }
@@ -227,14 +240,16 @@ impl Default for BlockchainConfig {
 }
 
 impl BlockchainConfig {
-  
     fn get_default_special_contracts() -> FundamentalSmcAddresses {
         let mut map = FundamentalSmcAddresses::default();
         map.add_key(&UInt256::with_array([0x33u8; 32])).unwrap();
         map.add_key(&UInt256::with_array([0x66u8; 32])).unwrap();
-        map.add_key(&
-            "34517C7BDF5187C55AF4F8B61FDC321588C7AB768DEE24B006DF29106458D7CF".parse::<UInt256>().unwrap()
-        ).unwrap();
+        map.add_key(
+            &"34517C7BDF5187C55AF4F8B61FDC321588C7AB768DEE24B006DF29106458D7CF"
+                .parse::<UInt256>()
+                .unwrap(),
+        )
+        .unwrap();
         map
     }
 
@@ -271,7 +286,8 @@ impl BlockchainConfig {
 
     /// Calculate gas fee for account
     pub fn calc_gas_fee(&self, gas_used: u64, address: &MsgAddressInt) -> u128 {
-        self.get_gas_config(address.is_masterchain()).calc_gas_fee(gas_used)
+        self.get_gas_config(address.is_masterchain())
+            .calc_gas_fee(gas_used)
     }
 
     /// Get `GasLimitsPrices` for account gas fee calculation
@@ -286,23 +302,38 @@ impl BlockchainConfig {
     /// Calculate forward fee
     pub fn calc_fwd_fee(&self, is_masterchain: bool, msg_cell: &Cell) -> Result<Grams> {
         let mut in_fwd_fee = self.get_fwd_prices(is_masterchain).fwd_fee(msg_cell);
-        if self.raw_config.has_capability(GlobalCapabilities::CapFeeInGasUnits) {
-            in_fwd_fee = self.get_gas_config(is_masterchain).calc_gas_fee(in_fwd_fee.try_into()?)
+        if self
+            .raw_config
+            .has_capability(GlobalCapabilities::CapFeeInGasUnits)
+        {
+            in_fwd_fee = self
+                .get_gas_config(is_masterchain)
+                .calc_gas_fee(in_fwd_fee.try_into()?)
         }
         Grams::new(in_fwd_fee)
     }
 
     /// Calculate account storage fee
-    pub fn calc_storage_fee(&self, storage: &StorageInfo, is_masterchain: bool, now: u32) -> Result<Grams> {
+    pub fn calc_storage_fee(
+        &self,
+        storage: &StorageInfo,
+        is_masterchain: bool,
+        now: u32,
+    ) -> Result<Grams> {
         let mut storage_fee = self.storage_prices.calc_storage_fee(
             storage.used().cells().into(),
             storage.used().bits().into(),
             storage.last_paid(),
             now,
-            is_masterchain
+            is_masterchain,
         );
-        if self.raw_config.has_capability(GlobalCapabilities::CapFeeInGasUnits) {
-            storage_fee = self.get_gas_config(is_masterchain).calc_gas_fee(storage_fee.try_into()?)
+        if self
+            .raw_config
+            .has_capability(GlobalCapabilities::CapFeeInGasUnits)
+        {
+            storage_fee = self
+                .get_gas_config(is_masterchain)
+                .calc_gas_fee(storage_fee.try_into()?)
         }
         Grams::new(storage_fee)
     }
@@ -313,10 +344,8 @@ impl BlockchainConfig {
             let account_id = address.get_address();
             // special account adresses are stored in hashmap
             // config account is special too
-            Ok(
-                self.raw_config.config_addr == account_id || 
-                self.special_contracts.get_raw(account_id)?.is_some()
-            )
+            Ok(self.raw_config.config_addr == account_id
+                || self.special_contracts.get_raw(account_id)?.is_some())
         } else {
             Ok(false)
         }

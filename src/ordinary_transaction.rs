@@ -20,13 +20,13 @@ use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 #[cfg(feature = "timings")]
 use std::time::Instant;
-use ton_block::{
+use tvm_block::{
     AccStatusChange, Account, AccountStatus, AddSub, CommonMsgInfo, Grams, Message,
     Serializable, TrBouncePhase, TrComputePhase, Transaction, TransactionDescr,
     TransactionDescrOrdinary, MASTERCHAIN_ID, GlobalCapabilities
 };
-use ton_types::{error, fail, Result, HashmapType, SliceData};
-use ton_vm::{
+use tvm_types::{error, fail, Result, HashmapType, SliceData};
+use tvm_vm::{
     boolean, int,
     stack::{integer::IntegerData, Stack, StackItem}, SmartContractInfo,
 };

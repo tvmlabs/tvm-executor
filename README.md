@@ -1,24 +1,23 @@
-<p align="center">
-  <a href="https://github.com/venom-blockchain/developer-program">
-    <img src="https://raw.githubusercontent.com/venom-blockchain/developer-program/main/vf-dev-program.png" alt="Logo" width="366.8" height="146.4">
-  </a>
-</p>
+# tvm-executor
 
-# ever-executor
-
-Transaction executor for Everscale/Venom nodes
+Transaction executor for TVM nodes
 
 ## Table of Contents
 
-- [About](#about)
-- [Getting Started](#getting-started)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
+- [tvm-executor](#tvm-executor)
+  - [Table of Contents](#table-of-contents)
+  - [About](#about)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installing](#installing)
+  - [Usage](#usage)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Tags](#tags)
 
 ## About
 
-Implementation of transaction executor for Everscale/Venom nodes in safe Rust. 
+Implementation of transaction executor for TVM nodes in safe Rust.
 
 ## Getting Started
 
@@ -29,14 +28,14 @@ Rust complier v1.65+.
 ### Installing
 
 ```
-git clone --recurse-submodules https://github.com/tonlabs/ever-executor.git
-cd ever-executor
+git clone --recurse-submodules https://github.com/tvmlabs/tvm-executor.git
+cd tvm-executor
 cargo build --release
 ```
 
 ## Usage
 
-This project output is the library which is used as a part of Everscale/Venom node. Also it can be used in standalone tools.
+This project output is the library which is used as a part of TVM node. Also it can be used in standalone tools.
 
 ## Contributing
 
@@ -48,4 +47,4 @@ See the [LICENSE](LICENSE) file for details.
 
 ## Tags
 
-`blockchain` `everscale` `rust` `venom-blockchain` `venom-developer-program` `venom-tvm` 
+`blockchain` `rust` `tvm`
