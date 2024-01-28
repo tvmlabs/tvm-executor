@@ -1,24 +1,27 @@
-/*
-* Copyright (C) 2019-2023 TON Labs. All Rights Reserved.
-*
-* Licensed under the SOFTWARE EVALUATION License (the "License"); you may not use
-* this file except in compliance with the License.
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific TON DEV software governing permissions and
-* limitations under the License.
-*/
+// Copyright (C) 2019-2023 TON Labs. All Rights Reserved.
+//
+// Licensed under the SOFTWARE EVALUATION License (the "License"); you may not
+// use this file except in compliance with the License.
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific TON DEV software governing permissions and
+// limitations under the License.
+
+use tvm_block::GlobalCapabilities;
+use tvm_types::Cell;
+use tvm_types::HashmapE;
+use tvm_types::Result;
+use tvm_types::SliceData;
+use tvm_vm::executor::gas::gas_state::Gas;
+use tvm_vm::executor::Engine;
+use tvm_vm::smart_contract_info::SmartContractInfo;
+use tvm_vm::stack::savelist::SaveList;
+use tvm_vm::stack::Stack;
+use tvm_vm::stack::StackItem;
 
 use crate::BlockchainConfig;
-use tvm_block::GlobalCapabilities;
-use tvm_types::{Cell, HashmapE, Result, SliceData};
-use tvm_vm::{
-    executor::{gas::gas_state::Gas, Engine},
-    smart_contract_info::SmartContractInfo,
-    stack::{savelist::SaveList, Stack, StackItem},
-};
 
 pub struct VMSetupContext {
     pub capabilities: u64,
@@ -123,21 +126,15 @@ impl VMSetup {
     pub fn create(self) -> Engine {
         if cfg!(debug_assertions) {
             // account balance is duplicated in stack and in c7 - so check
-            let balance_in_smc = self.ctrls.get(7).unwrap().as_tuple().unwrap()[0]
-                .as_tuple()
-                .unwrap()[7]
-                .as_tuple()
-                .unwrap()[0]
-                .as_integer()
-                .unwrap();
+            let balance_in_smc =
+                self.ctrls.get(7).unwrap().as_tuple().unwrap()[0].as_tuple().unwrap()[7]
+                    .as_tuple()
+                    .unwrap()[0]
+                    .as_integer()
+                    .unwrap();
             let stack_depth = self.stack.as_ref().unwrap().depth();
-            let balance_in_stack = self
-                .stack
-                .as_ref()
-                .unwrap()
-                .get(stack_depth - 1)
-                .as_integer()
-                .unwrap();
+            let balance_in_stack =
+                self.stack.as_ref().unwrap().get(stack_depth - 1).as_integer().unwrap();
             assert_eq!(balance_in_smc, balance_in_stack);
         }
         let mut vm = self.vm.setup_with_libraries(

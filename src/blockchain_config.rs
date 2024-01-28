@@ -1,21 +1,28 @@
-/*
-* Copyright (C) 2019-2023 EverX. All Rights Reserved.
-*
-* Licensed under the SOFTWARE EVALUATION License (the "License"); you may not use
-* this file except in compliance with the License.
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific TON DEV software governing permissions and
-* limitations under the License.
-*/
+// Copyright (C) 2019-2023 EverX. All Rights Reserved.
+//
+// Licensed under the SOFTWARE EVALUATION License (the "License"); you may not
+// use this file except in compliance with the License.
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific TON DEV software governing permissions and
+// limitations under the License.
 
-use tvm_block::{
-    ConfigParam18, ConfigParams, FundamentalSmcAddresses, GasLimitsPrices, GlobalCapabilities,
-    Grams, MsgAddressInt, MsgForwardPrices, StorageInfo, StoragePrices, StorageUsedShort,
-};
-use tvm_types::{Cell, Result, UInt256};
+use tvm_block::ConfigParam18;
+use tvm_block::ConfigParams;
+use tvm_block::FundamentalSmcAddresses;
+use tvm_block::GasLimitsPrices;
+use tvm_block::GlobalCapabilities;
+use tvm_block::Grams;
+use tvm_block::MsgAddressInt;
+use tvm_block::MsgForwardPrices;
+use tvm_block::StorageInfo;
+use tvm_block::StoragePrices;
+use tvm_block::StorageUsedShort;
+use tvm_types::Cell;
+use tvm_types::Result;
+use tvm_types::UInt256;
 
 pub const VERSION_BLOCK_REVERT_MESSAGES_WITH_ANYCAST_ADDRESSES: u32 = 8;
 pub const VERSION_BLOCK_NEW_CALCULATION_BOUNCED_STORAGE: u32 = 30;
@@ -61,8 +68,9 @@ pub trait CalcMsgFwdFees {
 impl CalcMsgFwdFees for MsgForwardPrices {
     /// Calculate message forward fee
     /// Forward fee is calculated according to the following formula:
-    /// `fwd_fee = (lump_price + ceil((bit_price * msg.bits + cell_price * msg.cells)/2^16))`.
-    /// `msg.bits` and `msg.cells` are calculated from message represented as tree of cells. Root cell is not counted.
+    /// `fwd_fee = (lump_price + ceil((bit_price * msg.bits + cell_price *
+    /// msg.cells)/2^16))`. `msg.bits` and `msg.cells` are calculated from
+    /// message represented as tree of cells. Root cell is not counted.
     fn fwd_fee(&self, msg_cell: &Cell) -> u128 {
         let mut storage = StorageUsedShort::default();
         storage.append(msg_cell);
@@ -72,10 +80,11 @@ impl CalcMsgFwdFees for MsgForwardPrices {
         cells -= 1;
 
         // All prices except `lump_price` are presented in `0xffff * price` form.
-        // It is needed because `ihr_factor`, `first_frac` and `next_frac` are not integer values
-        // but calculations are performed in integers, so prices are multiplied to some big
-        // number (0xffff) and fee calculation uses such values. At the end result is divided by
-        // 0xffff with ceil rounding to obtain nanograms (add 0xffff and then `>> 16`)
+        // It is needed because `ihr_factor`, `first_frac` and `next_frac` are not
+        // integer values but calculations are performed in integers, so prices
+        // are multiplied to some big number (0xffff) and fee calculation uses
+        // such values. At the end result is divided by 0xffff with ceil
+        // rounding to obtain nanograms (add 0xffff and then `>> 16`)
         self.lump_price as u128
             + ((cells * self.cell_price as u128 + bits * self.bit_price as u128 + 0xffff) >> 16)
     }
@@ -87,14 +96,17 @@ impl CalcMsgFwdFees for MsgForwardPrices {
     }
 
     /// Calculate mine part of forward fee
-    /// Forward fee for internal message is splited to `int_msg_mine_fee` and `int_msg_remain_fee`:
-    /// `msg_forward_fee = int_msg_mine_fee + int_msg_remain_fee`
-    /// `int_msg_mine_fee` is a part of transaction `total_fees` and will go validators of account's shard
-    /// `int_msg_remain_fee` is placed in header of internal message and will go to validators
-    /// of shard to which message destination address is belong.
+    /// Forward fee for internal message is splited to `int_msg_mine_fee` and
+    /// `int_msg_remain_fee`: `msg_forward_fee = int_msg_mine_fee +
+    /// int_msg_remain_fee` `int_msg_mine_fee` is a part of transaction
+    /// `total_fees` and will go validators of account's shard
+    /// `int_msg_remain_fee` is placed in header of internal message and will go
+    /// to validators of shard to which message destination address is
+    /// belong.
     fn mine_fee_checked(&self, fwd_fee: &Grams) -> Result<Grams> {
         Grams::new((fwd_fee.as_u128() * self.first_frac as u128) >> 16)
     }
+
     fn next_fee_checked(&self, fwd_fee: &Grams) -> Result<Grams> {
         Grams::new((fwd_fee.as_u128() * self.next_frac as u128) >> 16)
     }
@@ -138,15 +150,12 @@ impl AccStoragePrices {
         }
         let mut fee = 0u128;
         // storage prices config contains prices array for some time intervals
-        // to calculate account storage fee we need to sum fees for all intervals since last
-        // storage fee pay calculated by formula `(cells * cell_price + bits * bits_price) * interval`
+        // to calculate account storage fee we need to sum fees for all intervals since
+        // last storage fee pay calculated by formula `(cells * cell_price +
+        // bits * bits_price) * interval`
         for i in 0..self.prices.len() {
             let prices = &self.prices[i];
-            let end = if i < self.prices.len() - 1 {
-                self.prices[i + 1].utime_since
-            } else {
-                now
-            };
+            let end = if i < self.prices.len() - 1 { self.prices[i + 1].utime_since } else { now };
 
             if end >= last_paid {
                 let delta = end - std::cmp::max(prices.utime_since, last_paid);
@@ -162,8 +171,8 @@ impl AccStoragePrices {
             }
         }
 
-        // stirage fee is calculated in pseudo values (like forward fee and gas fee) - multiplied
-        // to 0xffff, so divide by this value with ceil rounding
+        // stirage fee is calculated in pseudo values (like forward fee and gas fee) -
+        // multiplied to 0xffff, so divide by this value with ceil rounding
         (fee + 0xffff) >> 16
     }
 
@@ -254,13 +263,11 @@ impl BlockchainConfig {
     }
 
     fn get_defult_raw_config() -> ConfigParams {
-        ConfigParams {
-            config_addr: [0x55; 32].into(),
-            ..ConfigParams::default()
-        }
+        ConfigParams { config_addr: [0x55; 32].into(), ..ConfigParams::default() }
     }
 
-    /// Create `BlockchainConfig` struct with `ConfigParams` taken from blockchain
+    /// Create `BlockchainConfig` struct with `ConfigParams` taken from
+    /// blockchain
     pub fn with_config(config: ConfigParams) -> Result<Self> {
         Ok(BlockchainConfig {
             gas_prices_mc: config.gas_prices(true)?,
@@ -277,38 +284,24 @@ impl BlockchainConfig {
 
     /// Get `MsgForwardPrices` for message forward fee calculation
     pub fn get_fwd_prices(&self, is_masterchain: bool) -> &MsgForwardPrices {
-        if is_masterchain {
-            &self.fwd_prices_mc
-        } else {
-            &self.fwd_prices_wc
-        }
+        if is_masterchain { &self.fwd_prices_mc } else { &self.fwd_prices_wc }
     }
 
     /// Calculate gas fee for account
     pub fn calc_gas_fee(&self, gas_used: u64, address: &MsgAddressInt) -> u128 {
-        self.get_gas_config(address.is_masterchain())
-            .calc_gas_fee(gas_used)
+        self.get_gas_config(address.is_masterchain()).calc_gas_fee(gas_used)
     }
 
     /// Get `GasLimitsPrices` for account gas fee calculation
     pub fn get_gas_config(&self, is_masterchain: bool) -> &GasLimitsPrices {
-        if is_masterchain {
-            &self.gas_prices_mc
-        } else {
-            &self.gas_prices_wc
-        }
+        if is_masterchain { &self.gas_prices_mc } else { &self.gas_prices_wc }
     }
 
     /// Calculate forward fee
     pub fn calc_fwd_fee(&self, is_masterchain: bool, msg_cell: &Cell) -> Result<Grams> {
         let mut in_fwd_fee = self.get_fwd_prices(is_masterchain).fwd_fee(msg_cell);
-        if self
-            .raw_config
-            .has_capability(GlobalCapabilities::CapFeeInGasUnits)
-        {
-            in_fwd_fee = self
-                .get_gas_config(is_masterchain)
-                .calc_gas_fee(in_fwd_fee.try_into()?)
+        if self.raw_config.has_capability(GlobalCapabilities::CapFeeInGasUnits) {
+            in_fwd_fee = self.get_gas_config(is_masterchain).calc_gas_fee(in_fwd_fee.try_into()?)
         }
         Grams::new(in_fwd_fee)
     }
@@ -327,13 +320,8 @@ impl BlockchainConfig {
             now,
             is_masterchain,
         );
-        if self
-            .raw_config
-            .has_capability(GlobalCapabilities::CapFeeInGasUnits)
-        {
-            storage_fee = self
-                .get_gas_config(is_masterchain)
-                .calc_gas_fee(storage_fee.try_into()?)
+        if self.raw_config.has_capability(GlobalCapabilities::CapFeeInGasUnits) {
+            storage_fee = self.get_gas_config(is_masterchain).calc_gas_fee(storage_fee.try_into()?)
         }
         Grams::new(storage_fee)
     }

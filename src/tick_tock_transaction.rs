@@ -1,32 +1,43 @@
-/*
-* Copyright (C) 2019-2022 TON Labs. All Rights Reserved.
-*
-* Licensed under the SOFTWARE EVALUATION License (the "License"); you may not use
-* this file except in compliance with the License.
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific TON DEV software governing permissions and
-* limitations under the License.
-*/
-
-use crate::{
-    blockchain_config::BlockchainConfig, error::ExecutorError, ActionPhaseResult, ExecuteParams,
-    TransactionExecutor,
-};
+// Copyright (C) 2019-2022 TON Labs. All Rights Reserved.
+//
+// Licensed under the SOFTWARE EVALUATION License (the "License"); you may not
+// use this file except in compliance with the License.
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific TON DEV software governing permissions and
+// limitations under the License.
 
 use std::sync::atomic::Ordering;
-use tvm_block::{
-    Account, CurrencyCollection, Grams, Message, Serializable, TrComputePhase, Transaction,
-    TransactionDescr, TransactionDescrTickTock, TransactionTickTock,
-};
-use tvm_types::{error, fail, HashmapType, Result, SliceData};
-use tvm_vm::{
-    boolean, int,
-    stack::{integer::IntegerData, Stack, StackItem},
-    SmartContractInfo,
-};
+
+use tvm_block::Account;
+use tvm_block::CurrencyCollection;
+use tvm_block::Grams;
+use tvm_block::Message;
+use tvm_block::Serializable;
+use tvm_block::TrComputePhase;
+use tvm_block::Transaction;
+use tvm_block::TransactionDescr;
+use tvm_block::TransactionDescrTickTock;
+use tvm_block::TransactionTickTock;
+use tvm_types::error;
+use tvm_types::fail;
+use tvm_types::HashmapType;
+use tvm_types::Result;
+use tvm_types::SliceData;
+use tvm_vm::boolean;
+use tvm_vm::int;
+use tvm_vm::stack::integer::IntegerData;
+use tvm_vm::stack::Stack;
+use tvm_vm::stack::StackItem;
+use tvm_vm::SmartContractInfo;
+
+use crate::blockchain_config::BlockchainConfig;
+use crate::error::ExecutorError;
+use crate::ActionPhaseResult;
+use crate::ExecuteParams;
+use crate::TransactionExecutor;
 
 pub struct TickTockTransactionExecutor {
     pub config: BlockchainConfig,
@@ -40,7 +51,6 @@ impl TickTockTransactionExecutor {
 }
 
 impl TransactionExecutor for TickTockTransactionExecutor {
-    ///
     /// Create end execute tick or tock transaction for special account
     fn execute_with_params(
         &self,
@@ -61,10 +71,7 @@ impl TransactionExecutor for TickTockTransactionExecutor {
                     fail!("wrong type of account's tick tock flag")
                 }
             }
-            None => fail!(
-                "Account {:x} is not special account for tick tock",
-                account_id
-            ),
+            None => fail!("Account {:x} is not special account for tick tock", account_id),
         }
         let account_address = account.get_addr().cloned().unwrap_or_default();
         log::debug!(target: "executor", "tick tock transation account {:x}", account_id);
@@ -132,9 +139,7 @@ impl TransactionExecutor for TickTockTransactionExecutor {
         );
         let mut stack = Stack::new();
         stack
-            .push(int!(account
-                .balance()
-                .map_or(0, |value| value.grams.as_u128())))
+            .push(int!(account.balance().map_or(0, |value| value.grams.as_u128())))
             .push(StackItem::integer(IntegerData::from_unsigned_bytes_be(
                 account_id.get_bytestring(0),
             )))
@@ -182,9 +187,7 @@ impl TransactionExecutor for TickTockTransactionExecutor {
                         &account_address,
                         is_special,
                     ) {
-                        Ok(ActionPhaseResult {
-                            phase, messages, ..
-                        }) => {
+                        Ok(ActionPhaseResult { phase, messages, .. }) => {
                             out_msgs = messages;
                             // ignore copyleft reward because account is special
                             Some(phase)
@@ -231,12 +234,15 @@ impl TransactionExecutor for TickTockTransactionExecutor {
         tr.write_description(&TransactionDescr::TickTock(description))?;
         Ok(tr)
     }
+
     fn ordinary_transaction(&self) -> bool {
         false
     }
+
     fn config(&self) -> &BlockchainConfig {
         &self.config
     }
+
     fn build_stack(&self, _in_msg: Option<&Message>, account: &Account) -> Stack {
         let account_balance = account.balance().unwrap().grams.as_u128();
         let account_id = account.get_id().unwrap();
