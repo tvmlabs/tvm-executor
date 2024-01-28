@@ -32,4 +32,6 @@ pub use vmsetup::*;
 pub mod blockchain_config;
 pub use blockchain_config::*;
 
-include!("../common/src/info.rs");
+pub fn build_commit() -> Option<&'static str> {
+    std::option_env!("BUILD_GIT_COMMIT")
+}
