@@ -5,19 +5,16 @@ rust-version = "1.75.0"
 version = "2.0.0"
 
 [dependencies]
-failure = "0.1.6"
+anyhow = "1.0.79"
 lazy_static = "1.4"
 log = "0.4"
-tvm_block = { git = "https://github.com/tvmlabs/tvm-block", branch = "main" }
-tvm_types = { git = "https://github.com/tvmlabs/tvm-types", branch = "main" }
-tvm_vm = { git = "https://github.com/tvmlabs/tvm-vm", branch = "main" }
+thiserror = "1.0.56"
+tvm_block = { git = "https://github.com/tvmlabs/tvm-block", tag = "2.0.0" }
+tvm_types = { git = "https://github.com/tvmlabs/tvm-types", tag = "3.0.1" }
+tvm_vm = { git = "https://github.com/tvmlabs/tvm-vm", tag="2.0.0" }
 
 [features]
 signature_with_id = [ "tvm_block/signature_with_id", "tvm_vm/signature_with_id" ]
-
-[[bench]]
-harness = false
-name = "benchmarks"
 
 [lib]
 bench = false
