@@ -1439,12 +1439,13 @@ fn outmsg_action_handler(
         _ => (),
     }
     let mut acc_balance_copy = ExtraCurrencyCollection::default();
-    match acc_balance.other.iterate_with_keys(|key: u32, b| -> Result<bool> {
+    let predicate = |key: u32, b: tvm_block::VarUInteger32| -> Result<bool> {
         if !b.is_zero() {
             acc_balance_copy.set(&key, &b)?;
         }
         Ok(true)
-    }) {
+    };
+    match acc_balance.other.iterate_with_keys(predicate) {
         Ok(false) | Err(_) => {
             log::warn!(target: "executor", "Cannot reduce account extra balance");
             return Err(skip.map(|_| RESULT_CODE_INVALID_BALANCE).unwrap_or_default());
