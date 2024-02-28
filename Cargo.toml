@@ -2,7 +2,7 @@
 edition = "2021"
 name = "tvm_executor"
 rust-version = "1.75.0"
-version = "2.0.0"
+version = "2.1.0"
 
 [dependencies]
 anyhow = "1.0.79"
@@ -11,7 +11,7 @@ log = "0.4"
 thiserror = "1.0.56"
 tvm_block = { git = "https://github.com/tvmlabs/tvm-block", tag = "2.0.0" }
 tvm_types = { git = "https://github.com/tvmlabs/tvm-types", tag = "3.0.1" }
-tvm_vm = { git = "https://github.com/tvmlabs/tvm-vm", branch = "feature-block_usage_detection" }
+tvm_vm = { git = "https://github.com/tvmlabs/tvm-vm", tag = "2.1.0" }
 
 [features]
 signature_with_id = [ "tvm_block/signature_with_id", "tvm_vm/signature_with_id" ]
