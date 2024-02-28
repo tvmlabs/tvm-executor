@@ -9,7 +9,9 @@
 // See the License for the specific TON DEV software governing permissions and
 // limitations under the License.
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use std::sync::Mutex;
+
 use tvm_block::GlobalCapabilities;
 use tvm_types::Cell;
 use tvm_types::HashmapE;
@@ -46,7 +48,6 @@ pub struct VMSetup {
 }
 
 impl VMSetup {
-
     pub fn set_block_related_flags(
         mut self,
         vm_execution_is_block_related: Arc<Mutex<bool>>,

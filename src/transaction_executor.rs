@@ -15,7 +15,8 @@ use std::collections::LinkedList;
 use std::convert::TryInto;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use tvm_block::AccStatusChange;
 use tvm_block::Account;
@@ -481,15 +482,18 @@ pub trait TransactionExecutor {
                 signature_id: params.signature_id,
             },
         )
-            .set_smart_contract_info(smc_info)?
-            .set_stack(stack)
-            .set_data(data)?
-            .set_libraries(libs)
-            .set_gas(gas)
-            .set_debug(params.debug)
-            .set_block_related_flags(params.vm_execution_is_block_related.clone(), params.block_collation_was_finished.clone())
-            .create();
-        
+        .set_smart_contract_info(smc_info)?
+        .set_stack(stack)
+        .set_data(data)?
+        .set_libraries(libs)
+        .set_gas(gas)
+        .set_debug(params.debug)
+        .set_block_related_flags(
+            params.vm_execution_is_block_related.clone(),
+            params.block_collation_was_finished.clone(),
+        )
+        .create();
+
         if let Some(modifiers) = params.behavior_modifiers.clone() {
             vm.modify_behavior(modifiers);
         }
