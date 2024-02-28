@@ -9,6 +9,7 @@
 // See the License for the specific TON DEV software governing permissions and
 // limitations under the License.
 
+use std::sync::{Arc, Mutex};
 use tvm_block::GlobalCapabilities;
 use tvm_types::Cell;
 use tvm_types::HashmapE;
@@ -40,9 +41,22 @@ pub struct VMSetup {
     gas: Option<Gas>,
     libraries: Vec<HashmapE>,
     ctx: VMSetupContext,
+    vm_execution_is_block_related: Arc<Mutex<bool>>,
+    block_collation_was_finished: Arc<Mutex<bool>>,
 }
 
 impl VMSetup {
+
+    pub fn set_block_related_flags(
+        mut self,
+        vm_execution_is_block_related: Arc<Mutex<bool>>,
+        block_collation_was_finished: Arc<Mutex<bool>>,
+    ) -> VMSetup {
+        self.vm_execution_is_block_related = vm_execution_is_block_related;
+        self.block_collation_was_finished = block_collation_was_finished;
+        self
+    }
+
     /// Creates new instance of VMSetup with contract code.
     /// Initializes some registers of TVM with predefined values.
     pub fn with_context(code: SliceData, ctx: VMSetupContext) -> Self {
@@ -54,6 +68,8 @@ impl VMSetup {
             gas: Some(Gas::empty()),
             libraries: vec![],
             ctx,
+            vm_execution_is_block_related: Arc::new(Mutex::new(false)),
+            block_collation_was_finished: Arc::new(Mutex::new(false)),
         }
     }
 
@@ -147,6 +163,10 @@ impl VMSetup {
         vm.set_block_version(self.ctx.block_version);
         #[cfg(feature = "signature_with_id")]
         vm.set_signature_id(self.ctx.signature_id);
+        vm.set_block_related_flags(
+            self.vm_execution_is_block_related,
+            self.block_collation_was_finished,
+        );
         vm
     }
 }
