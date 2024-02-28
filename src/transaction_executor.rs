@@ -12,10 +12,10 @@
 
 use std::cmp::min;
 use std::collections::LinkedList;
-use std::convert::TryInto;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use tvm_block::AccStatusChange;
 use tvm_block::Account;
@@ -123,6 +123,8 @@ pub struct ExecuteParams {
     pub block_version: u32,
     #[cfg(feature = "signature_with_id")]
     pub signature_id: i32,
+    pub vm_execution_is_block_related: Arc<Mutex<bool>>,
+    pub block_collation_was_finished: Arc<Mutex<bool>>,
 }
 
 pub struct ActionPhaseResult {
@@ -161,6 +163,8 @@ impl Default for ExecuteParams {
             block_version: 0,
             #[cfg(feature = "signature_with_id")]
             signature_id: 0,
+            vm_execution_is_block_related: Arc::new(Mutex::new(false)),
+            block_collation_was_finished: Arc::new(Mutex::new(false)),
         }
     }
 }
@@ -483,6 +487,10 @@ pub trait TransactionExecutor {
         .set_libraries(libs)
         .set_gas(gas)
         .set_debug(params.debug)
+        .set_block_related_flags(
+            params.vm_execution_is_block_related.clone(),
+            params.block_collation_was_finished.clone(),
+        )
         .create();
 
         if let Some(modifiers) = params.behavior_modifiers.clone() {
