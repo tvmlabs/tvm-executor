@@ -12,7 +12,6 @@
 
 use std::cmp::min;
 use std::collections::LinkedList;
-use std::convert::TryInto;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
